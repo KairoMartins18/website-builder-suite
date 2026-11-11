@@ -56,9 +56,23 @@ const WP_CSS = `
 .wb-el.wp-block-image{overflow:hidden}
 .wb-el.wp-block-image img{display:block}
 .wb-wp-content{max-width:760px;margin:0 auto;padding:64px 24px}
+.wb-archive-title{max-width:1140px;margin:0 auto!important;padding:48px 24px 0;font-family:var(--wb-font-heading)}
 .wb-wp-content>*+*{margin-block-start:1.2em}
 .wb-wp-posts .wp-block-post{padding:24px 0;border-bottom:1px solid rgba(127,127,127,.25)}
 .wb-t-comments .wp-block-comment-template{list-style:none;padding:0}
+.wp-block-post-template.wb-feed-wp{gap:28px;list-style:none;padding:0;margin:0}
+.wb-feed-wp.wb-feed-list>li+li{margin-top:28px}
+.wb-post-img img{border-radius:10px;aspect-ratio:16/9;object-fit:cover;width:100%}
+.wb-post-cat-wp a{display:inline-block;padding:2px 10px;border-radius:999px;background:color-mix(in srgb,var(--wb-primary) 14%,transparent);color:var(--wb-primary);font-size:.8em;font-weight:600;text-decoration:none}
+.wb-post-title a{color:inherit;text-decoration:none}
+.wb-post-meta{font-size:.88em;opacity:.75;gap:6px 14px}
+.wp-block-post-excerpt__more-link{color:var(--wb-primary);font-weight:600}
+.wp-block-query-pagination{margin-top:24px;gap:8px}
+.wb-widget ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.wb-widget a{color:inherit;text-decoration:none}
+.wb-t-postFeaturedImage img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.wb-post-nav a{color:inherit;text-decoration:none}
+@media (max-width:767px){.wb-feed-wp.wb-feed-wp{grid-template-columns:1fr!important}}
 `;
 
 /** Regras extras por tipo de widget (onde o bloco do WordPress tem estrutura própria). */
@@ -143,7 +157,7 @@ const headerPart = (sticky: boolean) => block('template-part', { slug: 'header',
 const footerPart = () => block('template-part', { slug: 'footer', tagName: 'footer' });
 const mainWith = (inner: string, className = 'wb-main') => block('group', { tagName: 'main', className, layout: { type: 'default' } }, `<main class="wp-block-group ${className}">${inner}</main>`);
 
-function functionsPhp(site: Site, slug: string, prefix: string, pages: { slug: string; title: string; comments: boolean }[], homeSlug: string, fontsUrl: string | null): string {
+function functionsPhp(site: Site, slug: string, prefix: string, pages: { slug: string; title: string; comments: boolean }[], homeSlug: string, fontsUrl: string | null, blogSlug: string | null): string {
   const dark = site.settings.darkMode && site.settings.darkMode !== 'off';
   const pageList = pages.map((p) => `\t\tarray( '${php(p.slug)}', '${php(p.title)}', ${p.comments ? 'true' : 'false'} ),`).join('\n');
   return `<?php
@@ -298,11 +312,23 @@ ${pageList}
 			);
 		}
 	}
-	$home = get_page_by_path( '${php(homeSlug)}' );
+${
+    blogSlug !== null && blogSlug === homeSlug
+      ? `\t// A página inicial é o próprio blog.\n\tupdate_option( 'show_on_front', 'posts' );`
+      : `\t$home = get_page_by_path( '${php(homeSlug)}' );
 	if ( $home ) {
 		update_option( 'show_on_front', 'page' );
 		update_option( 'page_on_front', $home->ID );
-	}
+	}${
+    blogSlug
+      ? `
+	$blog = get_page_by_path( '${php(blogSlug)}' );
+	if ( $blog ) {
+		update_option( 'page_for_posts', $blog->ID );
+	}`
+      : ''
+  }`
+  }
 }
 add_action( 'after_switch_theme', '${prefix}_create_pages' );
 
@@ -432,10 +458,21 @@ Tags: full-site-editing, block-patterns, custom-colors, accessibility-ready
 `,
   );
   add('theme.json', themeJson(site));
+  const blogPage = site.pages.find((p) => p.role === 'blog');
+  const postPage = site.pages.find((p) => p.role === 'post');
+  const blogSlug = blogPage ? (blogPage.id === home.id ? homeSlug : blogPage.slug) : null;
   const hasComments = (sections: Section[]) => sections.some((s) => isFlow(s) && [...walk(s.root)].some(({ node }) => node.kind === 'widget' && node.type === 'comments'));
   add(
     'functions.php',
-    functionsPhp(site, slug, prefix, site.pages.map((p) => ({ slug: p.id === home.id ? homeSlug : p.slug, title: p.name, comments: hasComments(p.sections) })), homeSlug, fontsUrl),
+    functionsPhp(
+      site,
+      slug,
+      prefix,
+      site.pages.filter((p) => p.role !== 'post').map((p) => ({ slug: p.id === home.id ? homeSlug : p.slug, title: p.name, comments: hasComments(p.sections) })),
+      homeSlug,
+      fontsUrl,
+      blogSlug,
+    ),
   );
   add('assets/css/site.css', themeCss(site, allSections));
   add('assets/js/site.js', SITE_SCRIPT + '\n');
@@ -455,12 +492,25 @@ Tags: full-site-editing, block-patterns, custom-colors, accessibility-ready
     const key = isHome ? 'home' : page.slug;
     const content = page.sections.map((s) => sectionBlock(s, ctx)).join('\n\n');
     add(`patterns/page-${key}.php`, pattern(`Página: ${page.name}`, `${slug}/page-${key}`, `${prefix}-pages`, content, prefix));
-    add(`templates/${isHome ? 'front-page' : `page-${page.slug}`}.html`, T(headerPart(sticky), mainWith(block('pattern', { slug: `${slug}/page-${key}` })), footerPart()));
+    const pat = block('pattern', { slug: `${slug}/page-${key}` });
+    if (page.role === 'post') {
+      // Modelo de cada post (o conteúdo vem do editor de posts do WordPress).
+      add('templates/single.html', T(headerPart(sticky), mainWith(pat), footerPart()));
+    } else if (page.role === 'blog') {
+      // Página de posts + listagens de categoria, tag, autor, data e busca.
+      add('templates/home.html', T(headerPart(sticky), mainWith(pat), footerPart()));
+      const titled = T(block('query-title', { type: 'archive', className: 'wb-archive-title' }), pat);
+      add('templates/archive.html', T(headerPart(sticky), mainWith(titled), footerPart()));
+      add('templates/search.html', T(headerPart(sticky), mainWith(T(block('query-title', { type: 'search', className: 'wb-archive-title' }), pat)), footerPart()));
+    } else {
+      add(`templates/${isHome ? 'front-page' : `page-${page.slug}`}.html`, T(headerPart(sticky), mainWith(pat), footerPart()));
+    }
   }
 
   // Páginas, posts e listagens criados direto no WordPress.
   add('templates/page.html', T(headerPart(sticky), mainWith(T(block('post-title', { level: 1 }), block('post-content')), 'wb-wp-content'), footerPart()));
-  add(
+  if (!postPage)
+    add(
     'templates/single.html',
     T(
       headerPart(sticky),

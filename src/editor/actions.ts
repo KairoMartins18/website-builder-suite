@@ -279,10 +279,12 @@ export function deleteSection(id: string) {
 
 // ---------- páginas ----------
 
-export function addPage(name: string, sections?: Section[]) {
+export function addPage(name: string, sections?: Section[], role?: Page['role']) {
   const site = st().site;
   if (!site) return;
   const page = newPage(name, uniqueSlug(site, name), sections ?? [blankFlowSection('Seção 1')]);
+  if (role && role !== 'page') page.role = role;
+  if (role === 'post') page.hideFromMenu = true;
   st().mutate((d) => {
     d.pages.push(page);
   });

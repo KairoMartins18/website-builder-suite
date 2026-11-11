@@ -99,7 +99,7 @@ export const EXPORT_CSS = `html,body{margin:0;padding:0}\n.wb-free{zoom:var(--wb
 
 export async function exportSiteFiles(original: Site): Promise<ZipEntry[]> {
   const { site, files } = await extractAssets(original);
-  const pages = site.pages.map((page) => ({ path: pageFileName(site, page), data: renderPageHtml(site, page) }));
+  const pages = site.pages.filter((p) => p.role !== 'post').map((page) => ({ path: pageFileName(site, page), data: renderPageHtml(site, page) }));
   return [...pages, { path: 'assets/site.css', data: EXPORT_CSS }, ...files];
 }
 

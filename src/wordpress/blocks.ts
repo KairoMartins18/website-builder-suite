@@ -107,6 +107,14 @@ export function inlineHtml(html: string): string {
 const JUSTIFY: Record<string, string> = { left: 'left', center: 'center', right: 'right', justify: 'space-between' };
 const SOCIAL = ['instagram', 'facebook', 'x', 'linkedin', 'youtube', 'whatsapp'];
 
+let queryCounter = 0;
+
+/** Widget de barra lateral: título opcional + bloco dinâmico do WordPress. */
+function widgetWithTitle(title: string | undefined, cls: string, inner: string): string {
+  const head = title ? block('heading', { level: 3, className: 'wb-widget-title' }, `<h3 class="wp-block-heading wb-widget-title">${escText(title)}</h3>`) + '\n' : '';
+  return block('group', { className: `wb-widget ${cls}`, layout: { type: 'default' } }, `<div class="wp-block-group wb-widget ${cls}">${head}${inner}</div>`);
+}
+
 /** Marcação estática (HTML) de um widget renderizado pelo próprio app. */
 function staticHtml(w: WidgetNode, ctx: WpContext): string {
   const env: RenderEnv = { site: ctx.site, pageId: '', mode: 'export', hrefForPage: (id) => pageToken(ctx.slugOf(id) ?? '') };
@@ -213,6 +221,65 @@ export function widgetBlock(w: WidgetNode, ctx: WpContext): string {
     }
     case 'login':
       return block('loginout', { displayLoginAsForm: !!p.asForm, className: cls });
+    // ---------------- blog ----------------
+    case 'postFeed': {
+      const grid = p.layout !== 'list';
+      const cols = Math.max(1, Number(p.columns) || 3);
+      const meta = [p.showDate ? block('post-date') : '', p.showAuthor ? block('post-author-name') : ''].filter(Boolean);
+      const parts = [
+        p.showImage ? block('post-featured-image', { isLink: true, aspectRatio: '16/9', className: 'wb-post-img' }) : '',
+        p.showCategory ? block('post-terms', { term: 'category', className: 'wb-post-cat-wp' }) : '',
+        block('post-title', { isLink: true, level: 3, className: 'wb-post-title' }),
+        meta.length ? block('group', { className: 'wb-post-meta', layout: { type: 'flex', flexWrap: 'wrap' } }, `<div class="wp-block-group wb-post-meta">${meta.join('\n')}</div>`) : '',
+        p.showExcerpt ? block('post-excerpt', { moreText: p.readMore || undefined, excerptLength: 24 }) : p.readMore ? block('read-more', { content: p.readMore }) : '',
+      ].filter(Boolean);
+      const card = block('group', { className: 'wb-post-card', layout: { type: 'default' } }, `<div class="wp-block-group wb-post-card">${parts.join('\n')}</div>`);
+      const template = block('post-template', { className: `wb-feed-wp${grid ? '' : ' wb-feed-list'}`, layout: grid ? { type: 'grid', columnCount: cols } : { type: 'default' } }, card);
+      const pagination = p.pagination
+        ? block('query-pagination', {}, [block('query-pagination-previous', { label: 'Anteriores' }), block('query-pagination-numbers'), block('query-pagination-next', { label: 'Próximos' })].join('\n'))
+        : '';
+      const empty = block('query-no-results', {}, block('paragraph', {}, '<p>Nenhum post encontrado.</p>'));
+      const inherit = p.source === 'inherit';
+      return block(
+        'query',
+        {
+          queryId: ++queryCounter,
+          query: { perPage: Math.max(1, Number(p.perPage) || 6), pages: 0, offset: 0, postType: 'post', order: 'desc', orderBy: 'date', author: '', search: '', exclude: [], sticky: '', inherit },
+          className: cls,
+        },
+        `<div class="wp-block-query ${cls}">${[template, pagination, empty].filter(Boolean).join('\n')}</div>`,
+      );
+    }
+    case 'categories':
+      return widgetWithTitle(p.title, cls, block('categories', { showPostCounts: !!p.showCount, displayAsDropdown: !!p.dropdown }));
+    case 'tagCloud':
+      return widgetWithTitle(p.title, cls, block('tag-cloud'));
+    case 'archives':
+      return widgetWithTitle(p.title, cls, block('archives', { showPostCounts: !!p.showCount, displayAsDropdown: !!p.dropdown }));
+    case 'search':
+      return block('search', { label: 'Buscar', showLabel: false, placeholder: p.placeholder || 'Buscar…', buttonText: p.buttonText || 'Buscar', className: cls });
+    case 'latestComments':
+      return widgetWithTitle(p.title, cls, block('latest-comments', { commentsToShow: Math.max(1, Number(p.count) || 5), displayAvatar: false, displayExcerpt: false }));
+    case 'postTitle':
+      return block('post-title', { level: Math.min(3, Math.max(1, Number(p.level) || 1)), className: cls });
+    case 'postContent':
+      return block('post-content', { className: cls, layout: { type: 'default' } });
+    case 'postFeaturedImage':
+      return block('post-featured-image', { className: cls });
+    case 'postMeta': {
+      const items = [p.showDate ? block('post-date') : '', p.showAuthor ? block('post-author-name') : '', p.showCategory ? block('post-terms', { term: 'category', className: 'wb-post-cat-wp' }) : ''].filter(Boolean);
+      return block('group', { className: `wb-post-meta ${cls}`, layout: { type: 'flex', flexWrap: 'wrap' } }, `<div class="wp-block-group wb-post-meta ${cls}">${items.join('\n')}</div>`);
+    }
+    case 'postTags':
+      return block('post-terms', { term: 'post_tag', prefix: '#', separator: '  ', className: cls });
+    case 'postNavigation':
+      return block(
+        'group',
+        { className: `wb-post-nav ${cls}`, layout: { type: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' } },
+        `<div class="wp-block-group wb-post-nav ${cls}">${block('post-navigation-link', { type: 'previous', showTitle: true, arrow: 'arrow' })}\n${block('post-navigation-link', { showTitle: true, arrow: 'arrow' })}</div>`,
+      );
+    case 'postAuthor':
+      return block('post-author', { showAvatar: true, showBio: !!p.showBio, className: cls });
     case 'map':
     case 'embed':
     case 'themeToggle':

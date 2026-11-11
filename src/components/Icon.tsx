@@ -39,6 +39,18 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
     </>
   ),
+  blog: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7 8h10M7 12h10M7 16h6" />
+    </>
+  ),
+  post: (
+    <>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M9 12h7M9 16h7M9 8h3" />
+    </>
+  ),
   sun: (
     <>
       <circle cx="12" cy="12" r="4" />

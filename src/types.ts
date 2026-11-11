@@ -71,7 +71,21 @@ export type ElementType =
   | 'social'
   | 'comments'
   | 'login'
-  | 'themeToggle';
+  | 'themeToggle'
+  // Blog (funcionam com posts reais no WordPress; no app mostram posts de exemplo)
+  | 'postFeed'
+  | 'categories'
+  | 'tagCloud'
+  | 'archives'
+  | 'search'
+  | 'latestComments'
+  | 'postTitle'
+  | 'postContent'
+  | 'postFeaturedImage'
+  | 'postMeta'
+  | 'postTags'
+  | 'postNavigation'
+  | 'postAuthor';
 
 export interface SiteElement extends Geometry {
   id: string;
@@ -185,10 +199,17 @@ export interface Section {
   sticky?: boolean;
 }
 
+/**
+ * page = página comum; blog = listagem de posts (página de posts do WordPress);
+ * post = modelo usado para exibir cada post (não é uma página publicada).
+ */
+export type PageRole = 'page' | 'blog' | 'post';
+
 export interface Page {
   id: string;
   name: string;
   slug: string;
+  role?: PageRole;
   sections: Section[];
   seo: { title: string; description: string };
   hideFromMenu?: boolean;

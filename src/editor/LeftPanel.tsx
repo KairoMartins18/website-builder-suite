@@ -12,6 +12,7 @@ import { ColorInput, Field, FontSelect, Select } from '../components/fields';
 import { ADD_MIME, STRUCT_MIME } from './Canvas';
 import { findNode, isFlow, STRUCTURES } from '../lib/flow';
 import { addStructure } from './flowActions';
+import { blogPageSections, postTemplateSections } from '../templates/blog';
 import { labelOf } from './FlowEditor';
 import { addElement, addPage, duplicatePage, insertSection, targetSectionId, updateElement, updatePage, updateSite } from './actions';
 import { confirmDeletePage } from './confirmations';
@@ -154,7 +155,7 @@ function PagesPanel({ site }: { site: Site }) {
       <div className="page-list">
         {site.pages.map((p) => (
           <div key={p.id} className={`page-item${p.id === pageId ? ' is-active' : ''}`} onClick={() => setPage(p.id)}>
-            {p.id === site.homePageId ? <Icon name="home" size={15} /> : <Icon name="pages" size={15} />}
+            {p.id === site.homePageId ? <Icon name="home" size={15} /> : <Icon name={p.role === 'blog' ? 'blog' : p.role === 'post' ? 'post' : 'pages'} size={15} />}
             {renaming === p.id ? (
               <input
                 className="input"
@@ -174,7 +175,9 @@ function PagesPanel({ site }: { site: Site }) {
             ) : (
               <span className="page-item-name" onDoubleClick={() => setRenaming(p.id)}>
                 {p.name}
-                {p.hideFromMenu && <em> (oculta)</em>}
+                {p.role === 'blog' && <em> · blog</em>}
+                {p.role === 'post' && <em> · modelo de post</em>}
+                {p.hideFromMenu && p.role !== 'post' && <em> (oculta)</em>}
               </span>
             )}
             <div className="page-item-actions" onClick={(e) => e.stopPropagation()}>
@@ -201,6 +204,16 @@ function PagesPanel({ site }: { site: Site }) {
       >
         <Icon name="plus" size={16} /> Nova página
       </button>
+      <div className="add-cat-title">Blog</div>
+      <div className="btn-row">
+        <button className="btn btn-sm" disabled={site.pages.some((p) => p.role === 'blog')} onClick={() => addPage('Blog', blogPageSections(), 'blog')} title="Lista de posts com barra lateral (categorias, tags, busca)">
+          <Icon name="blog" size={14} /> Página de blog
+        </button>
+        <button className="btn btn-sm" disabled={site.pages.some((p) => p.role === 'post')} onClick={() => addPage('Modelo de post', postTemplateSections(), 'post')} title="Layout usado para exibir cada post">
+          <Icon name="post" size={14} /> Modelo de post
+        </button>
+      </div>
+      <p className="hint">A página de blog também é usada nas listagens de categoria, tag e busca. O modelo de post define o visual de cada post no WordPress.</p>
       <p className="hint">Configurações de SEO e endereço ficam no painel à direita quando nada está selecionado.</p>
     </>
   );

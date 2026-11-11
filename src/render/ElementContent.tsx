@@ -5,6 +5,7 @@ import type { Link, Site, SiteElement, WidgetNode } from '../types';
 export type ElementLike = Pick<SiteElement, 'id' | 'type' | 'props' | 'style' | 'link'>;
 import { elementCss, resolveColor } from '../lib/theme';
 import { ELEMENTS } from '../elements/registry';
+import { BLOG_TYPES, BlogContent } from './BlogContent';
 
 export interface RenderEnv {
   site: Site;
@@ -73,6 +74,7 @@ const SOCIAL_ICONS: Record<string, ReactNode> = {
 export function ElementContent({ el, env }: { el: ElementLike; env: RenderEnv }) {
   const p = el.props;
   const placeholder = (text: string) => <div className="wb-placeholder">{text}</div>;
+  if (BLOG_TYPES.has(el.type)) return <BlogContent el={el} env={env} />;
   const noFrames = env.mode === 'thumb';
 
   switch (el.type) {

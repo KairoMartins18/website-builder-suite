@@ -29,6 +29,9 @@ export interface ElementDef {
   wpOnly?: string;
 }
 
+const BLOG_NOTE = 'No WordPress mostra os posts reais (e no Kairo CMS). No app aparecem posts de exemplo; no HTML estático este bloco é omitido.';
+const POST_NOTE = 'Use na página "Modelo de post": no WordPress mostra os dados de cada post. No app aparece um post de exemplo.';
+
 export const ELEMENTS: Record<ElementType, ElementDef> = {
   heading: {
     type: 'heading',
@@ -185,6 +188,114 @@ export const ELEMENTS: Record<ElementType, ElementDef> = {
     box: true,
     fields: [],
   },
+  postFeed: {
+    type: 'postFeed',
+    label: 'Lista de posts',
+    typography: true,
+    box: true,
+    wpOnly: BLOG_NOTE,
+    fields: [
+      {
+        key: 'layout',
+        label: 'Layout',
+        kind: 'select',
+        options: [
+          { value: 'grid', label: 'Grade de cartões' },
+          { value: 'list', label: 'Lista' },
+        ],
+      },
+      { key: 'columns', label: 'Colunas (grade)', kind: 'number', min: 1, max: 4 },
+      { key: 'perPage', label: 'Posts por página', kind: 'number', min: 1, max: 50 },
+      {
+        key: 'source',
+        label: 'Quais posts',
+        kind: 'select',
+        options: [
+          { value: 'latest', label: 'Mais recentes' },
+          { value: 'inherit', label: 'Os da página atual (blog, categoria, busca)' },
+        ],
+      },
+      { key: 'showImage', label: 'Imagem destacada', kind: 'toggle' },
+      { key: 'showCategory', label: 'Categoria', kind: 'toggle' },
+      { key: 'showDate', label: 'Data', kind: 'toggle' },
+      { key: 'showAuthor', label: 'Autor', kind: 'toggle' },
+      { key: 'showExcerpt', label: 'Resumo', kind: 'toggle' },
+      { key: 'readMore', label: 'Texto do link "leia mais"', kind: 'text' },
+      { key: 'pagination', label: 'Paginação', kind: 'toggle' },
+    ],
+  },
+  categories: {
+    type: 'categories',
+    label: 'Categorias',
+    typography: true,
+    box: true,
+    wpOnly: BLOG_NOTE,
+    fields: [
+      { key: 'title', label: 'Título', kind: 'text' },
+      { key: 'showCount', label: 'Mostrar quantidade de posts', kind: 'toggle' },
+      { key: 'dropdown', label: 'Exibir como lista suspensa', kind: 'toggle' },
+    ],
+  },
+  tagCloud: { type: 'tagCloud', label: 'Nuvem de tags', typography: true, box: true, wpOnly: BLOG_NOTE, fields: [{ key: 'title', label: 'Título', kind: 'text' }] },
+  archives: {
+    type: 'archives',
+    label: 'Arquivos (por mês)',
+    typography: true,
+    box: true,
+    wpOnly: BLOG_NOTE,
+    fields: [
+      { key: 'title', label: 'Título', kind: 'text' },
+      { key: 'showCount', label: 'Mostrar quantidade de posts', kind: 'toggle' },
+      { key: 'dropdown', label: 'Exibir como lista suspensa', kind: 'toggle' },
+    ],
+  },
+  search: {
+    type: 'search',
+    label: 'Busca',
+    typography: true,
+    box: true,
+    wpOnly: BLOG_NOTE,
+    fields: [
+      { key: 'placeholder', label: 'Texto de exemplo', kind: 'text' },
+      { key: 'buttonText', label: 'Texto do botão', kind: 'text' },
+    ],
+  },
+  latestComments: {
+    type: 'latestComments',
+    label: 'Comentários recentes',
+    typography: true,
+    box: true,
+    wpOnly: BLOG_NOTE,
+    fields: [
+      { key: 'title', label: 'Título', kind: 'text' },
+      { key: 'count', label: 'Quantidade', kind: 'number', min: 1, max: 20 },
+    ],
+  },
+  postTitle: {
+    type: 'postTitle',
+    label: 'Título do post',
+    typography: true,
+    box: true,
+    wpOnly: POST_NOTE,
+    fields: [{ key: 'level', label: 'Nível (SEO)', kind: 'select', options: [1, 2, 3].map((n) => ({ value: n, label: `H${n}` })) }],
+  },
+  postContent: { type: 'postContent', label: 'Conteúdo do post', typography: true, box: true, wpOnly: POST_NOTE, fields: [] },
+  postFeaturedImage: { type: 'postFeaturedImage', label: 'Imagem destacada', box: true, wpOnly: POST_NOTE, fields: [] },
+  postMeta: {
+    type: 'postMeta',
+    label: 'Informações do post',
+    typography: true,
+    box: true,
+    wpOnly: POST_NOTE,
+    fields: [
+      { key: 'showDate', label: 'Data', kind: 'toggle' },
+      { key: 'showAuthor', label: 'Autor', kind: 'toggle' },
+      { key: 'showCategory', label: 'Categoria', kind: 'toggle' },
+    ],
+  },
+  postTags: { type: 'postTags', label: 'Tags do post', typography: true, box: true, wpOnly: POST_NOTE, fields: [] },
+  postNavigation: { type: 'postNavigation', label: 'Post anterior / próximo', typography: true, box: true, wpOnly: POST_NOTE, fields: [] },
+  postAuthor: { type: 'postAuthor', label: 'Autor do post', typography: true, box: true, wpOnly: POST_NOTE, fields: [{ key: 'showBio', label: 'Mostrar biografia', kind: 'toggle' }] },
 };
 
 export type ElementSeed = Omit<SiteElement, 'id' | 'x' | 'y'> & { x?: number; y?: number };
@@ -346,6 +457,34 @@ export const ADD_CATEGORIES: { name: string; items: AddPreset[] }[] = [
         }),
       },
       { label: 'Mapa', icon: '⌖', seed: () => ({ type: 'map', w: 480, h: 300, props: { address: 'Avenida Paulista, São Paulo', zoom: 15 }, style: {} }) },
+    ],
+  },
+  {
+    name: 'Blog',
+    items: [
+      {
+        label: 'Lista de posts',
+        icon: '📰',
+        seed: () => ({
+          type: 'postFeed',
+          w: 900,
+          h: 700,
+          props: { layout: 'grid', columns: 3, perPage: 6, source: 'latest', showImage: true, showCategory: true, showDate: true, showAuthor: false, showExcerpt: true, readMore: 'Leia mais', pagination: true },
+          style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 15 },
+        }),
+      },
+      { label: 'Categorias', icon: '🗂', seed: () => ({ type: 'categories', w: 260, h: 220, props: { title: 'Categorias', showCount: true, dropdown: false }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 15 } }) },
+      { label: 'Nuvem de tags', icon: '#', seed: () => ({ type: 'tagCloud', w: 280, h: 160, props: { title: 'Tags' }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 14 } }) },
+      { label: 'Arquivos', icon: '🗓', seed: () => ({ type: 'archives', w: 260, h: 200, props: { title: 'Arquivos', showCount: true, dropdown: false }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 15 } }) },
+      { label: 'Busca', icon: '🔍', seed: () => ({ type: 'search', w: 320, h: 48, props: { placeholder: 'Buscar no site…', buttonText: 'Buscar' }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 15 } }) },
+      { label: 'Comentários recentes', icon: '💬', seed: () => ({ type: 'latestComments', w: 300, h: 240, props: { title: 'Comentários recentes', count: 5 }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 14 } }) },
+      { label: 'Título do post', icon: 'T', seed: () => ({ type: 'postTitle', w: 700, h: 60, props: { level: 1 }, style: { fontFamily: 'theme:heading', color: 'theme:text', fontSize: 44, fontWeight: 700, lineHeight: 1.15 } }) },
+      { label: 'Conteúdo do post', icon: '¶', seed: () => ({ type: 'postContent', w: 700, h: 300, props: {}, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 18, lineHeight: 1.75 } }) },
+      { label: 'Imagem destacada', icon: '🖼', seed: () => ({ type: 'postFeaturedImage', w: 900, h: 420, props: {}, style: { borderRadius: 12 } }) },
+      { label: 'Informações do post', icon: 'ℹ', seed: () => ({ type: 'postMeta', w: 500, h: 30, props: { showDate: true, showAuthor: true, showCategory: true }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 14, opacity: 0.8 } }) },
+      { label: 'Tags do post', icon: '🏷', seed: () => ({ type: 'postTags', w: 500, h: 30, props: {}, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 14 } }) },
+      { label: 'Anterior / próximo', icon: '⇆', seed: () => ({ type: 'postNavigation', w: 700, h: 60, props: {}, style: { fontFamily: 'theme:body', color: 'theme:primary', fontSize: 15, fontWeight: 600 } }) },
+      { label: 'Autor do post', icon: '👤', seed: () => ({ type: 'postAuthor', w: 600, h: 100, props: { showBio: true }, style: { fontFamily: 'theme:body', color: 'theme:text', fontSize: 15, background: 'theme:muted', borderRadius: 12, padding: 20 } }) },
     ],
   },
   {

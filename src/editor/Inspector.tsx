@@ -293,7 +293,10 @@ function PageInspector({ page, site }: { page: Page; site: Site }) {
   const isHome = page.id === site.homePageId;
   return (
     <>
-      <InspectorHeader title={page.name} subtitle={isHome ? 'Página inicial' : `/${page.slug}`} />
+      <InspectorHeader
+        title={page.name}
+        subtitle={page.role === 'post' ? 'Modelo usado para exibir cada post' : page.role === 'blog' ? 'Página de posts (blog)' : isHome ? 'Página inicial' : `/${page.slug}`}
+      />
       <p className="hint insp-pad">Selecione um elemento ou seção no canvas para editar suas propriedades.</p>
       <Group title="Página">
         <Field label="Nome">

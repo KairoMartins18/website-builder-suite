@@ -2,9 +2,10 @@
 import type { Link, Page, Section, Site, Theme } from '../types';
 import { newPage, newSite } from '../lib/siteOps';
 import { placeholderImage } from '../lib/images';
+import { blogPageSections, postTemplateSections } from './blog';
 import { box, button, card, col, eyebrow, flowSection, form, gallery, ghostButton, grid, heading, headerSection, image, line, map, menu, row, social, text } from './kit';
 
-type PageSpec = { name: string; slug: string; sections: (links: Links) => Section[] };
+type PageSpec = { name: string; slug: string; sections: (links: Links) => Section[]; role?: Page['role'] };
 type Links = Record<string, Link>;
 
 /** Monta o site: cria as páginas primeiro para que botões possam apontar para elas. */
@@ -13,7 +14,11 @@ function compose(siteName: string, templateId: string, theme: Theme, header: (l:
   site.templateId = templateId;
   const shells: Page[] = pages.map((p) => newPage(p.name, p.slug, []));
   const links: Links = Object.fromEntries(shells.map((p) => [p.slug, { kind: 'page', pageId: p.id } as Link]));
-  shells.forEach((p, i) => (p.sections = pages[i].sections(links)));
+  shells.forEach((p, i) => {
+    p.sections = pages[i].sections(links);
+    if (pages[i].role) p.role = pages[i].role;
+    if (pages[i].role === 'post') p.hideFromMenu = true;
+  });
   site.pages = shells;
   site.homePageId = shells[0].id;
   site.header = header(links);
@@ -355,6 +360,8 @@ export function buildPortfolio(name: string): Site {
           ]),
         ],
       },
+      { name: 'Blog', slug: 'blog', role: 'blog', sections: () => blogPageSections() },
+      { name: 'Modelo de post', slug: 'modelo-post', role: 'post', sections: () => postTemplateSections() },
       { name: 'Contato', slug: 'contato', sections: () => [flowSection('Contato', [heading('Diga olá', 54, {}, 1), box({ gap: 0 }, [form([{ label: 'Nome', type: 'text', required: true }, { label: 'E-mail', type: 'email', required: true }, { label: 'Sobre o projeto', type: 'textarea' }], 'Enviar', {}, '#111111')], { layout: { width: 60 }, responsive: { mobile: { layout: { width: 100 } } } })])] },
     ],
   );
@@ -436,6 +443,8 @@ export function buildSaas(name: string): Site {
           ]),
         ],
       },
+      { name: 'Blog', slug: 'blog', role: 'blog', sections: () => blogPageSections() },
+      { name: 'Modelo de post', slug: 'modelo-post', role: 'post', sections: () => postTemplateSections() },
       { name: 'Contato', slug: 'contato', sections: () => [flowSection('Contato', [box({ gap: 24, align: 'stretch' }, [heading('Fale com a equipe', 44, { textAlign: 'center' }), card([form([{ label: 'Nome', type: 'text', required: true }, { label: 'E-mail de trabalho', type: 'email', required: true }, { label: 'Empresa', type: 'text' }, { label: 'Como podemos ajudar?', type: 'textarea' }], 'Enviar')], { background: 'theme:background', borderRadius: 16, shadow: 'md' }, 32)])], { color: 'theme:muted' }, { maxWidth: 640 })] },
     ],
   );
