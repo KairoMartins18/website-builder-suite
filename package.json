@@ -1,0 +1,82 @@
+{
+  "name": "website-builder-suite",
+  "version": "0.1.0",
+  "description": "Construtor de sites visual (estilo Wix) para desktop",
+  "license": "ISC",
+  "author": "Kairo Martins",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/electron-dev.mjs",
+    "dev:web": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "npm run build && node scripts/electron-dev.mjs --prod",
+    "dist": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^45.3.0",
+    "electron-builder": "^26.18.0",
+    "immer": "^11.2.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "zustand": "^5.1.0"
+  },
+  "productName": "Website Builder Suite",
+  "main": "electron/main.mjs",
+  "build": {
+    "appId": "com.websitebuildersuite.app",
+    "productName": "Website Builder Suite",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Website Builder Suite",
+      "artifactName": "WebsiteBuilderSuite-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development",
+      "icon": "build/icon.png"
+    }
+  }
+}
