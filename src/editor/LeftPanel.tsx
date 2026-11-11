@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import type { Section, Site, ThemeColors } from '../types';
+import type { FlowNode, Section, Site, ThemeColors } from '../types';
 import { useEditor, type LeftPanel as PanelId } from '../store/editor';
 import { ADD_CATEGORIES, ELEMENTS } from '../elements/registry';
 import { SECTION_PRESETS } from '../templates/sections';
 import { FONTS } from '../lib/fonts';
-import { PALETTES, THEME_COLOR_KEYS } from '../lib/theme';
+import { darkColors, deriveDarkColors, PALETTES, THEME_COLOR_KEYS } from '../lib/theme';
 import { findElement } from '../lib/siteOps';
 import { pageSections } from '../lib/layout';
 import { Icon } from '../components/Icon';
-import { ColorInput, Field, FontSelect } from '../components/fields';
-import { ADD_MIME } from './Canvas';
+import { ColorInput, Field, FontSelect, Select } from '../components/fields';
+import { ADD_MIME, STRUCT_MIME } from './Canvas';
+import { findNode, isFlow, STRUCTURES } from '../lib/flow';
+import { addStructure } from './flowActions';
+import { labelOf } from './FlowEditor';
 import { addElement, addPage, duplicatePage, insertSection, targetSectionId, updateElement, updatePage, updateSite } from './actions';
 import { confirmDeletePage } from './confirmations';
 import { promptDialog } from '../components/Dialogs';
@@ -65,7 +68,32 @@ export function LeftDrawer() {
 function AddPanel() {
   return (
     <>
-      <p className="hint">Clique para adicionar à seção selecionada ou arraste para o canvas.</p>
+      <p className="hint">Clique para adicionar ao container selecionado ou arraste para o canvas.</p>
+      <div className="add-cat">
+        <div className="add-cat-title">Estrutura (containers)</div>
+        <div className="struct-grid">
+          {STRUCTURES.map((s) => (
+            <button
+              key={s.id}
+              className="struct-item"
+              title={`${s.label} — vira uma pilha no celular`}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData(STRUCT_MIME, s.id);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
+              onClick={() => addStructure(s)}
+            >
+              <span className="struct-preview">
+                {s.cols.map((c, i) => (
+                  <span key={i} style={{ flex: c }} />
+                ))}
+              </span>
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       {ADD_CATEGORIES.map((cat, ci) => (
         <div key={cat.name} className="add-cat">
           <div className="add-cat-title">{cat.name}</div>
@@ -184,9 +212,15 @@ function LayersPanel({ site }: { site: Site }) {
   const select = useEditor((s) => s.select);
   const page = site.pages.find((p) => p.id === pageId)!;
   const selectedSection =
-    selection?.kind === 'section' ? selection.id : selection?.kind === 'element' ? findElement(site, selection.id)?.section.id : undefined;
+    selection?.kind === 'section'
+      ? selection.id
+      : selection?.kind === 'element'
+        ? findElement(site, selection.id)?.section.id
+        : selection?.kind === 'node'
+          ? findNode(site, selection.id)?.section.id
+          : undefined;
 
-  const reveal = (id: string, attr: 'data-el-id' | 'data-section-id') =>
+  const reveal = (id: string, attr: 'data-el-id' | 'data-section-id' | 'data-node-id') =>
     document.querySelector(`[${attr}="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const renderSection = (s: Section) => (
@@ -200,8 +234,21 @@ function LayersPanel({ site }: { site: Site }) {
       >
         <Icon name="sections" size={14} />
         {s.kind === 'header' ? 'Cabeçalho' : s.kind === 'footer' ? 'Rodapé' : s.name}
-        <span className="layer-count">{s.elements.length}</span>
+        <span className="layer-count">{isFlow(s) ? 'containers' : s.elements.length}</span>
       </div>
+      {isFlow(s) &&
+        s.root.children.map((n) => (
+          <NodeTree
+            key={n.id}
+            node={n}
+            depth={0}
+            selectedId={selection?.kind === 'node' ? selection.id : undefined}
+            onSelect={(id) => {
+              select({ kind: 'node', id });
+              reveal(id, 'data-node-id');
+            }}
+          />
+        ))}
       {[...s.elements].reverse().map((el) => (
         <div
           key={el.id}
@@ -240,6 +287,24 @@ function LayersPanel({ site }: { site: Site }) {
   return <div className="layers">{pageSections(site, page).map(renderSection)}</div>;
 }
 
+/** Árvore de containers e widgets (o "Navegador" do Elementor). */
+function NodeTree({ node, depth, selectedId, onSelect }: { node: FlowNode; depth: number; selectedId?: string; onSelect: (id: string) => void }) {
+  return (
+    <>
+      <div
+        className={`layer-el${node.kind === 'container' ? ' layer-container' : ''}${selectedId === node.id ? ' is-active' : ''}`}
+        style={{ paddingLeft: 30 + depth * 14 }}
+        onClick={() => onSelect(node.id)}
+      >
+        {node.kind === 'container' && <Icon name="sections" size={12} />}
+        <span className="layer-el-name">{node.kind === 'widget' && !node.name ? layerLabel(node.type, node.props) : labelOf(node)}</span>
+        {node.layout.hidden && <Icon name="eyeOff" size={12} />}
+      </div>
+      {node.kind === 'container' && node.children.map((c) => <NodeTree key={c.id} node={c} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />)}
+    </>
+  );
+}
+
 function layerLabel(type: keyof typeof ELEMENTS, props: Record<string, unknown>): string {
   const base = ELEMENTS[type].label;
   const raw = (props.html as string | undefined) ?? (props.label as string | undefined);
@@ -271,6 +336,42 @@ function ThemePanel({ site }: { site: Site }) {
           <ColorInput value={theme.colors[key]} theme={theme} allowNone={false} onChange={(v) => setColor(key, v?.startsWith('theme:') ? theme.colors[v.slice(6) as keyof ThemeColors] : v)} />
         </Field>
       ))}
+      <div className="add-cat-title">Modo escuro do site</div>
+      <Field label="Modo escuro">
+        <Select
+          value={site.settings.darkMode ?? 'off'}
+          options={[
+            { value: 'off', label: 'Desligado (sempre claro)' },
+            { value: 'auto', label: 'Automático (segue o sistema do visitante)' },
+            { value: 'toggle', label: 'Automático + botão para alternar' },
+          ]}
+          onChange={(v) => updateSite((d) => void (d.settings.darkMode = v))}
+        />
+      </Field>
+      {site.settings.darkMode && site.settings.darkMode !== 'off' && (
+        <>
+          <p className="hint">Adicione o “Botão modo escuro” (painel Adicionar → Interação) para o visitante alternar. Elementos com cores do tema trocam automaticamente.</p>
+          {THEME_COLOR_KEYS.map(({ key, label }) => (
+            <Field key={key} label={`${label} (escuro)`}>
+              <ColorInput
+                value={darkColors(theme)[key]}
+                theme={theme}
+                allowNone={false}
+                onChange={(v) =>
+                  v &&
+                  !v.startsWith('theme:') &&
+                  updateSite((d) => {
+                    d.theme.darkColors = { ...darkColors(d.theme), [key]: v };
+                  }, `dark.${key}`)
+                }
+              />
+            </Field>
+          ))}
+          <button className="btn btn-sm" onClick={() => updateSite((d) => void (d.theme.darkColors = deriveDarkColors(d.theme.colors)))}>
+            Gerar paleta escura automaticamente
+          </button>
+        </>
+      )}
       <div className="add-cat-title">Fontes</div>
       <Field label="Títulos">
         <FontSelect value={theme.fonts.heading} theme={theme} allowTheme={false} onChange={(v) => updateSite((d) => void (d.theme.fonts.heading = v))} />

@@ -1,9 +1,11 @@
-import type { Geometry, Page, Section, Site, SiteElement } from '../types';
+import type { Geometry, Page, Section, Site, SiteElement, WidgetNode } from '../types';
 import { useEditor } from '../store/editor';
-import { cloneElement, cloneSection, findElement, findSection, newPage, newSection, pageOfSection, uniqueSlug } from '../lib/siteOps';
+import { cloneElement, cloneSection, findElement, findSection, newPage, pageOfSection, uniqueSlug } from '../lib/siteOps';
 import { contentWidth, mobileLayout, pageSections } from '../lib/layout';
 import { makeElement, type ElementSeed } from '../elements/registry';
 import { uid } from '../lib/id';
+import { blankFlowSection, cloneNode, findNode, isFlow } from '../lib/flow';
+import { addWidget, elementFromWidget, insertNode, insertionPoint, widgetFromElement } from './flowActions';
 
 const st = () => useEditor.getState();
 const round = (g: Partial<Geometry>) => Object.fromEntries(Object.entries(g).map(([k, v]) => [k, Math.round(v as number)])) as Partial<Geometry>;
@@ -19,6 +21,7 @@ export function targetSectionId(): string | undefined {
   if (!site) return;
   if (selection?.kind === 'section') return selection.id;
   if (selection?.kind === 'element') return findElement(site, selection.id)?.section.id;
+  if (selection?.kind === 'node') return findNode(site, selection.id)?.section.id;
   const scroller = document.querySelector('.ed-canvas-scroll');
   if (scroller) {
     const r = scroller.getBoundingClientRect();
@@ -64,7 +67,8 @@ export function resetMobileLayout(sectionId: string) {
 
 export function setGeom(id: string, patch: Partial<Geometry>, opts: { history?: boolean; key?: string } = { history: false }) {
   const { site, device } = st();
-  if (!site) return;
+  // Seções livres não são editáveis no tablet (o layout é o de computador reduzido).
+  if (!site || device === 'tablet') return;
   const found = findElement(site, id);
   if (!found) return;
   if (device === 'mobile' && !found.element.mobile) freezeMobile(found.section.id);
@@ -100,10 +104,16 @@ export function addElement(seed: ElementSeed, target?: { sectionId?: string; x?:
   const sectionId = target?.sectionId ?? targetSectionId();
   const sec = sectionId ? findSection(site, sectionId) : undefined;
   if (!sec) return;
+  // Seção com containers: vira widget no container selecionado.
+  if (isFlow(sec)) {
+    addWidget(seed, target ? { containerId: sec.root.id, index: sec.root.children.length } : insertionPoint());
+    return;
+  }
+  if (device === 'tablet') st().setDevice('desktop');
   const el = makeElement(seed);
   const cw = contentWidth(device);
 
-  if (device === 'desktop') {
+  if (device !== 'mobile') {
     el.x = Math.round(target?.x ?? (cw - el.w) / 2);
     el.y = Math.round(target?.y ?? Math.max(20, (sec.height - el.h) / 2));
   } else {
@@ -153,20 +163,26 @@ export function duplicateElement(id: string) {
 export function copyElement(id: string) {
   const site = st().site;
   const f = site && findElement(site, id);
-  if (f) st().setClipboard(structuredClone(f.element));
+  if (f) st().setClipboard({ kind: 'element', element: structuredClone(f.element) });
 }
 
 export function pasteElement() {
   const { clipboard, site } = st();
   if (!clipboard || !site) return;
   const sectionId = targetSectionId();
-  if (!sectionId) return;
-  const copy = cloneElement(clipboard);
+  const target = sectionId ? findSection(site, sectionId) : undefined;
+  if (!target) return;
+  if (isFlow(target)) {
+    insertNode(clipboard.kind === 'node' ? cloneNode(clipboard.node) : widgetFromElement(clipboard.element));
+    return;
+  }
+  if (clipboard.kind === 'node' && clipboard.node.kind === 'container') return; // containers só em seções com containers
+  const copy = clipboard.kind === 'node' ? elementFromWidget(clipboard.node as WidgetNode) : cloneElement(clipboard.element);
   copy.x += 20;
   copy.y += 20;
   delete copy.mobile;
   st().mutate((d) => {
-    const s = findSection(d, sectionId)!;
+    const s = findSection(d, target.id)!;
     copy.y = Math.min(copy.y, Math.max(0, s.height - copy.h));
     s.elements.push(copy);
   });
@@ -232,7 +248,7 @@ export function insertSection(section: Section, afterId?: string) {
 
 export function addBlankSection(afterId?: string) {
   const page = currentPage();
-  insertSection(newSection('body', `Seção ${(page?.sections.length ?? 0) + 1}`, 500), afterId);
+  insertSection(blankFlowSection(`Seção ${(page?.sections.length ?? 0) + 1}`), afterId);
 }
 
 export function moveSection(id: string, dir: -1 | 1) {
@@ -266,7 +282,7 @@ export function deleteSection(id: string) {
 export function addPage(name: string, sections?: Section[]) {
   const site = st().site;
   if (!site) return;
-  const page = newPage(name, uniqueSlug(site, name), sections ?? [newSection('body', 'Seção 1', 500)]);
+  const page = newPage(name, uniqueSlug(site, name), sections ?? [blankFlowSection('Seção 1')]);
   st().mutate((d) => {
     d.pages.push(page);
   });

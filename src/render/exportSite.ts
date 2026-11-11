@@ -4,14 +4,13 @@ import type { Page, Site } from '../types';
 import { googleFontsUrl } from '../lib/fonts';
 import { collectFonts } from '../lib/theme';
 import { createZip, type ZipEntry } from '../lib/zip';
-import { BASE_CSS, mobileMenuCss } from './baseCss';
+import { BASE_CSS, mobileMenuCss, SCHEME_BOOT_SCRIPT, SITE_SCRIPT } from './baseCss';
 import { SiteRenderer } from './SiteRenderer';
 
 export function pageFileName(site: Site, page: Page): string {
   return page.id === site.homePageId ? 'index.html' : `${page.slug}.html`;
 }
 
-const ZOOM_SCRIPT = `(function(){function f(){var w=document.documentElement.clientWidth,z=w<768?w/360:w<980?w/980:1;document.documentElement.style.setProperty('--wb-zoom',z)}f();addEventListener('resize',f);document.addEventListener('click',function(e){var b=e.target.closest('.wb-burger');if(b){b.parentNode.classList.toggle('wb-open');return}document.querySelectorAll('.wb-menu.wb-open').forEach(function(m){if(!m.contains(e.target)||e.target.closest('a'))m.classList.remove('wb-open')})})})();`;
 
 const EXT: Record<string, string> = {
   'image/png': 'png',
@@ -86,16 +85,17 @@ export function renderPageHtml(site: Site, page: Page): string {
 ${page.seo.description ? `<meta name="description" content="${escapeHtml(page.seo.description)}">\n` : ''}${
     site.settings.favicon ? `<link rel="icon" href="${escapeHtml(site.settings.favicon)}">\n` : ''
   }${fonts ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="${fonts}">\n` : ''}<link rel="stylesheet" href="assets/site.css">
+<script>${SCHEME_BOOT_SCRIPT}</script>
 </head>
 <body>
 ${body}
-<script>${ZOOM_SCRIPT}</script>
+<script>${SITE_SCRIPT}</script>
 </body>
 </html>
 `;
 }
 
-export const EXPORT_CSS = `html,body{margin:0;padding:0}\n.wb-section{zoom:var(--wb-zoom,1)}\n${BASE_CSS}\n@media (max-width:767px){${mobileMenuCss('.wb-site')}}`;
+export const EXPORT_CSS = `html,body{margin:0;padding:0}\n.wb-free{zoom:var(--wb-zoom,1)}\n${BASE_CSS}\n@media (max-width:767px){${mobileMenuCss('.wb-site')}}`;
 
 export async function exportSiteFiles(original: Site): Promise<ZipEntry[]> {
   const { site, files } = await extractAssets(original);

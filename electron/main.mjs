@@ -1,5 +1,5 @@
 // Processo principal do Electron: janela, persistência em arquivos e exportação.
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron';
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -140,7 +140,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 640,
     title: 'Website Builder Suite',
-    backgroundColor: '#f4f6fa',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0d0f17' : '#f5f6fb',
     show: false,
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {

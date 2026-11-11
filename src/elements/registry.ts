@@ -25,6 +25,8 @@ export interface ElementDef {
   linkable?: boolean;
   /** Edição de texto com duplo clique no canvas. */
   inlineText?: 'html' | 'label';
+  /** Só funciona de verdade no WordPress (mostra um aviso no inspector). */
+  wpOnly?: string;
 }
 
 export const ELEMENTS: Record<ElementType, ElementDef> = {
@@ -94,6 +96,7 @@ export const ELEMENTS: Record<ElementType, ElementDef> = {
       { key: 'columns', label: 'Colunas', kind: 'number', min: 1, max: 6 },
       { key: 'gap', label: 'Espaçamento', kind: 'number', min: 0, max: 60 },
       { key: 'radius', label: 'Cantos das imagens', kind: 'number', min: 0, max: 60 },
+      { key: 'lightbox', label: 'Ampliar foto ao clicar (lightbox)', kind: 'toggle' },
     ],
   },
   menu: {
@@ -155,6 +158,32 @@ export const ELEMENTS: Record<ElementType, ElementDef> = {
       { key: 'size', label: 'Tamanho do ícone', kind: 'number', min: 16, max: 64 },
       { key: 'iconColor', label: 'Cor dos ícones', kind: 'color' },
     ],
+  },
+  comments: {
+    type: 'comments',
+    label: 'Comentários',
+    typography: true,
+    box: true,
+    wpOnly: 'Os comentários reais aparecem no WordPress (em posts e páginas com comentários ativados). No HTML estático este bloco é omitido.',
+    fields: [
+      { key: 'title', label: 'Título', kind: 'text', placeholder: 'Comentários' },
+      { key: 'showForm', label: 'Mostrar formulário para comentar', kind: 'toggle' },
+    ],
+  },
+  login: {
+    type: 'login',
+    label: 'Login',
+    typography: true,
+    box: true,
+    wpOnly: 'Usa o login do WordPress (usuários do site). No HTML estático este bloco é omitido.',
+    fields: [{ key: 'asForm', label: 'Mostrar formulário (em vez de só um link)', kind: 'toggle' }],
+  },
+  themeToggle: {
+    type: 'themeToggle',
+    label: 'Botão modo escuro',
+    typography: true,
+    box: true,
+    fields: [],
   },
 };
 
@@ -317,6 +346,26 @@ export const ADD_CATEGORIES: { name: string; items: AddPreset[] }[] = [
         }),
       },
       { label: 'Mapa', icon: '⌖', seed: () => ({ type: 'map', w: 480, h: 300, props: { address: 'Avenida Paulista, São Paulo', zoom: 15 }, style: {} }) },
+    ],
+  },
+  {
+    name: 'Interação (WordPress)',
+    items: [
+      {
+        label: 'Comentários',
+        icon: '💬',
+        seed: () => ({ type: 'comments', w: 560, h: 420, props: { title: 'Comentários', showForm: true }, style: { fontFamily: 'theme:body', fontSize: 15, color: 'theme:text' } }),
+      },
+      {
+        label: 'Login',
+        icon: '🔐',
+        seed: () => ({ type: 'login', w: 340, h: 300, props: { asForm: true }, style: { fontFamily: 'theme:body', fontSize: 15, color: 'theme:text' } }),
+      },
+      {
+        label: 'Modo escuro',
+        icon: '◐',
+        seed: () => ({ type: 'themeToggle', w: 44, h: 44, props: {}, style: { color: 'theme:text', borderRadius: 999, borderWidth: 1, borderColor: 'theme:muted' } }),
+      },
     ],
   },
   {

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wbs/form",
+	"title": "Formulário de contato",
+	"category": "website-builder-suite",
+	"icon": "email",
+	"description": "Formulário que envia e-mail e guarda as mensagens no painel.",
+	"keywords": [ "contato", "formulário", "email" ],
+	"textdomain": "website-builder-suite",
+	"attributes": {
+		"formId": { "type": "string", "default": "" },
+		"fields": {
+			"type": "array",
+			"default": [
+				{ "label": "Nome", "type": "text", "required": true },
+				{ "label": "E-mail", "type": "email", "required": true },
+				{ "label": "Mensagem", "type": "textarea", "required": false }
+			]
+		},
+		"submitLabel": { "type": "string", "default": "Enviar" },
+		"buttonColor": { "type": "string", "default": "" },
+		"email": { "type": "string", "default": "" }
+	},
+	"supports": { "html": false },
+	"editorScript": "wbs-editor",
+	"style": "wbs-blocks",
+	"render": "file:./render.php"
+}

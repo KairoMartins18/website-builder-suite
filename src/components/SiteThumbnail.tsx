@@ -26,7 +26,7 @@ export const SiteThumbnail = memo(function SiteThumbnail({ site }: { site: Site 
     <div ref={ref} className="thumb" aria-hidden>
       {width > 0 && (
         <div className="thumb-inner" style={{ width: RENDER_WIDTH, transform: `scale(${width / RENDER_WIDTH})` }}>
-          <SiteRenderer site={site} page={page} target="desktop" env={env} />
+          <SiteRenderer site={site} page={page} target="desktop" env={env} scheme="light" />
         </div>
       )}
     </div>

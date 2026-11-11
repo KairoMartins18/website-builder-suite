@@ -1,6 +1,7 @@
 import type { Section, Site, Theme } from '../types';
 import { DEFAULT_THEME, newPage, newSite } from '../lib/siteOps';
 import { footerPreset, headerPreset, SECTION_PRESETS } from './sections';
+import { buildAurora, buildBruma, buildPortfolio, buildRestaurante, buildSaas } from './themes';
 
 export interface SiteTemplate {
   id: string;
@@ -56,4 +57,9 @@ export const TEMPLATES: SiteTemplate[] = [
         { name: 'Contato', slug: 'contato', sections: ['contact', 'map'] },
       ]),
   },
+  { id: 'aurora', name: 'Aurora (glassmorfismo)', category: 'Glassmorfismo', description: 'Vidro fosco sobre degradês noturnos. Ideal para estúdios e produtos digitais.', build: buildAurora },
+  { id: 'bruma', name: 'Bruma (glassmorfismo claro)', category: 'Glassmorfismo', description: 'Vidro leve em tons pastel. Para spas, clínicas e bem-estar.', build: buildBruma },
+  { id: 'restaurante', name: 'Restaurante', category: 'Negócios', description: 'Cardápio, galeria de pratos e reservas com mapa.', build: buildRestaurante },
+  { id: 'portfolio', name: 'Portfólio minimalista', category: 'Pessoal', description: 'Tipografia forte e grade de projetos. Para designers e criativos.', build: buildPortfolio },
+  { id: 'saas', name: 'Startup / SaaS', category: 'Negócios', description: 'Destaque do produto, recursos, planos e contato.', build: buildSaas },
 ];

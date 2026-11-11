@@ -28,6 +28,19 @@ export async function exportSite(site: Site): Promise<void> {
   downloadBlob(createZip(files), `${name}.zip`);
 }
 
+/** Tema de blocos do WordPress (.zip para enviar em Aparência → Temas). */
+export async function exportWordPressTheme(site: Site): Promise<void> {
+  const { exportWordPressThemeZip } = await import('../wordpress/exportTheme');
+  const { blob, slug } = await exportWordPressThemeZip(site);
+  downloadBlob(blob, `${slug}-tema-wordpress.zip`);
+}
+
+/** Plugin gratuito que ativa formulários e seções livres no WordPress. */
+export async function downloadWordPressPlugin(): Promise<void> {
+  const { pluginZip } = await import('../wordpress/exportTheme');
+  downloadBlob(pluginZip(), 'website-builder-suite-plugin.zip');
+}
+
 /** Baixa/salva o backup completo do site em JSON. */
 export function downloadBackup(site: Site) {
   downloadBlob(new Blob([JSON.stringify(site)], { type: 'application/json' }), `${slugify(site.name)}-backup.json`);

@@ -1,22 +1,80 @@
-/** No celular o menu vira um botão "hambúrguer" com lista suspensa. */
+/** Regras de celular: menu vira botão "hambúrguer" com lista suspensa; galerias com 2 colunas. */
 export const mobileMenuCss = (scope: string) => `
-${scope} .wb-burger{display:flex}
+${scope} .wb-burger{display:flex;margin-left:auto}
+${scope} .wb-gallery{grid-template-columns:repeat(2,1fr)!important}
 ${scope} .wb-menu-links{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:220px;height:auto;flex-direction:column!important;align-items:stretch!important;gap:0!important;padding:8px;background:var(--wb-background);color:var(--wb-text);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:100}
 ${scope} .wb-menu.wb-open .wb-menu-links{display:flex}
 ${scope} .wb-menu-links a{padding:10px 12px;border-bottom:0;border-radius:6px;text-align:left}
 ${scope} .wb-menu-links a.wb-active{background:rgba(127,127,127,.12)}
 `;
 
-/** Abre/fecha o menu hambúrguer (usado no HTML exportado e na pré-visualização). */
+/** Comportamentos interativos do site na pré-visualização (o HTML publicado usa SITE_SCRIPT). */
+export function handleSiteClick(target: EventTarget | null, onToggleScheme?: () => void) {
+  const el = target as HTMLElement | null;
+  if (el?.closest?.('.wb-theme-toggle')) {
+    onToggleScheme?.();
+    return;
+  }
+  const img = el?.closest?.('.wb-gallery[data-lightbox] img') as HTMLImageElement | null;
+  if (img) {
+    openLightbox(img);
+    return;
+  }
+  handleMenuClick(target);
+}
+
+function openLightbox(img: HTMLImageElement) {
+  const o = document.createElement('div');
+  o.className = 'wb-lightbox';
+  o.setAttribute('role', 'dialog');
+  o.setAttribute('aria-label', 'Imagem ampliada');
+  o.tabIndex = -1;
+  const big = document.createElement('img');
+  big.src = img.currentSrc || img.src;
+  big.alt = img.alt;
+  o.appendChild(big);
+  const close = () => {
+    o.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+  o.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(o);
+  o.focus();
+}
+
+/** Script do site publicado (HTML exportado e tema WordPress): zoom das seções livres, menu, lightbox e modo escuro. */
+export const SITE_SCRIPT = [
+  '(function(){var d=document.documentElement;',
+  "function z(){var w=d.clientWidth,k=w<768?w/360:w<980?w/980:1;d.style.setProperty('--wb-zoom',k)}z();addEventListener('resize',z);",
+  "function dark(){var s=d.getAttribute('data-wb-scheme');return s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches}",
+  "function lb(img){var o=document.createElement('div');o.className='wb-lightbox';o.setAttribute('role','dialog');o.setAttribute('aria-label','Imagem ampliada');o.tabIndex=-1;var b=document.createElement('img');b.src=img.currentSrc||img.src;b.alt=img.alt;o.appendChild(b);o.addEventListener('click',function(){o.remove()});document.body.appendChild(o);o.focus()}",
+  "document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=document.querySelector('.wb-lightbox');if(o)o.remove()}});",
+  "document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;",
+  "if(t.closest('.wb-theme-toggle')){var n=dark()?'light':'dark';d.setAttribute('data-wb-scheme',n);try{localStorage.setItem('wb-scheme',n)}catch(x){}return}",
+  "var img=t.closest('.wb-gallery[data-lightbox] img,.wb-lightbox-gallery img');if(img){e.preventDefault();lb(img);return}",
+  "var b=t.closest('.wb-burger');if(b){b.setAttribute('aria-expanded',b.parentNode.classList.toggle('wb-open'));return}",
+  "document.querySelectorAll('.wb-menu.wb-open').forEach(function(m){if(!m.contains(t)||t.closest('a')){m.classList.remove('wb-open');m.querySelector('.wb-burger').setAttribute('aria-expanded','false')}})})})();",
+].join('');
+
+/** Aplica a preferência salva antes da página aparecer (evita "piscar" claro→escuro). */
+export const SCHEME_BOOT_SCRIPT = "try{var s=localStorage.getItem('wb-scheme');if(s)document.documentElement.setAttribute('data-wb-scheme',s)}catch(e){}";
+
+/** Abre/fecha o menu hambúrguer. */
 export function handleMenuClick(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   const burger = el?.closest?.('.wb-burger');
   if (burger) {
-    burger.parentElement?.classList.toggle('wb-open');
+    const open = burger.parentElement!.classList.toggle('wb-open');
+    burger.setAttribute('aria-expanded', String(open));
     return;
   }
   document.querySelectorAll('.wb-menu.wb-open').forEach((m) => {
-    if (!m.contains(el) || el?.closest('a')) m.classList.remove('wb-open');
+    if (!m.contains(el) || el?.closest('a')) {
+      m.classList.remove('wb-open');
+      m.querySelector('.wb-burger')?.setAttribute('aria-expanded', 'false');
+    }
   });
 }
 
@@ -60,4 +118,36 @@ a.wb-t-button:active{transform:translateY(1px)}
 .wb-social a{display:inline-flex;color:inherit;transition:opacity .15s}
 .wb-social a:hover{opacity:.7}
 .wb-social svg{width:100%;height:100%}
+.wb-c{min-width:0}
+.wb-flow>.wb-c{position:relative}
+:where(.wb-flow) .wb-el{position:relative}
+:where(.wb-flow) .wb-t-button{padding:12px 28px}
+:where(.wb-flow) .wb-t-video{aspect-ratio:16/9}
+:where(.wb-flow) .wb-t-map,:where(.wb-flow) .wb-t-embed{min-height:120px}
+:where(.wb-flow) .wb-t-shape{min-height:20px}
+:where(.wb-flow) .wb-t-line{min-height:20px}
+:where(.wb-flow) .wb-gallery{height:auto;grid-auto-rows:auto}
+:where(.wb-flow) .wb-gallery img{height:auto;aspect-ratio:4/3}
+:where(.wb-flow) .wb-burger{width:40px;height:40px}
+.wb-skip{position:absolute;left:-9999px;top:8px;z-index:1000;padding:12px 18px;border-radius:6px;background:#111;color:#fff;font:600 15px/1.2 system-ui,sans-serif}
+.wb-skip:focus{left:8px}
+.wb-site a:focus-visible,.wb-site button:focus-visible,.wb-site input:focus-visible,.wb-site textarea:focus-visible{outline:3px solid var(--wb-primary);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.wb-site *{transition:none!important;animation:none!important}}
+.wb-comments{display:flex;flex-direction:column;gap:16px}
+.wb-comments-title{margin:0;font:inherit;font-size:1.3em;font-weight:700}
+.wb-comment-list{display:flex;flex-direction:column;gap:16px;margin:0;padding:0;list-style:none}
+.wb-comment-list li{display:flex;gap:12px}
+.wb-comment-list p{margin:4px 0 0}
+.wb-avatar{display:flex;flex:none;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--wb-muted);font-weight:700}
+.wb-muted{font-size:.9em;opacity:.65}
+.wb-wp-note{margin:0;font-size:12px;opacity:.6}
+.wb-form .wb-check{flex-direction:row;align-items:center;gap:8px;font-weight:400}
+.wb-form .wb-check input{width:auto}
+.wb-login-link{color:inherit;font-weight:600;text-decoration:underline}
+.wb-theme-toggle{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:40px;min-height:40px;padding:0;border:0;background:none;color:inherit;cursor:pointer}
+.wb-theme-toggle svg{width:22px;height:22px}
+.wb-moon{display:none}
+.wb-gallery[data-lightbox] img{cursor:zoom-in}
+.wb-lightbox{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.88);cursor:zoom-out}
+.wb-lightbox img{max-width:100%;max-height:100%;border-radius:8px}
 ${mobileMenuCss('.wb-mobile')}`;

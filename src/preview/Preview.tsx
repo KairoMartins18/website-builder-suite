@@ -7,12 +7,14 @@ import { useFonts } from '../lib/fontLoader';
 import { SiteRenderer } from '../render/SiteRenderer';
 import type { RenderEnv } from '../render/ElementContent';
 import { Icon } from '../components/Icon';
-import { handleMenuClick } from '../render/baseCss';
+import { DeviceSwitch } from '../components/DeviceSwitch';
+import { handleSiteClick } from '../render/baseCss';
 import { alertDialog } from '../components/Dialogs';
 
 export function Preview({ siteId, pageId }: { siteId: string; pageId?: string }) {
   const [site, setSite] = useState<Site | null | undefined>(undefined);
   const [device, setDevice] = useState<DeviceMode>('desktop');
+  const [scheme, setScheme] = useState<'light' | 'dark'>(() => (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   const scrollRef = useRef<HTMLDivElement>(null);
   useFonts(site ? collectFonts(site) : []);
 
@@ -55,26 +57,26 @@ export function Preview({ siteId, pageId }: { siteId: string; pageId?: string })
         <div className="pv-title">
           {site.name} · <span>{page.name}</span>
         </div>
-        <div className="seg seg-dark">
-          <button className={device === 'desktop' ? 'is-active' : ''} onClick={() => setDevice('desktop')} title="Computador">
-            <Icon name="desktop" size={17} />
-          </button>
-          <button className={device === 'mobile' ? 'is-active' : ''} onClick={() => setDevice('mobile')} title="Celular">
-            <Icon name="mobile" size={17} />
-          </button>
+        <div className="pv-actions">
+          {site.settings.darkMode && site.settings.darkMode !== 'off' && (
+            <button className="icon-btn" title={scheme === 'dark' ? 'Ver no modo claro' : 'Ver no modo escuro'} onClick={() => setScheme(scheme === 'dark' ? 'light' : 'dark')}>
+              <Icon name={scheme === 'dark' ? 'sun' : 'moon'} />
+            </button>
+          )}
+          <DeviceSwitch value={device} onChange={setDevice} />
         </div>
       </header>
       <div className={`pv-stage pv-${device}`}>
         <div
           ref={scrollRef}
           className="pv-scroll"
-          onClick={(e) => handleMenuClick(e.target)}
+          onClick={(e) => handleSiteClick(e.target, () => setScheme((s) => (s === 'dark' ? 'light' : 'dark')))}
           onSubmit={(e) => {
             e.preventDefault();
             void alertDialog('Formulário enviado!', 'Na pré-visualização o envio é apenas simulado.');
           }}
         >
-          <SiteRenderer site={site} page={page} target={device} env={env} />
+          <SiteRenderer site={site} page={page} target={device} env={env} scheme={site.settings.darkMode && site.settings.darkMode !== 'off' ? scheme : 'light'} />
         </div>
       </div>
     </div>

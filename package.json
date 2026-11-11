@@ -2,7 +2,7 @@
   "name": "website-builder-suite",
   "version": "0.1.0",
   "description": "Construtor de sites visual (estilo Wix) para desktop",
-  "license": "ISC",
+  "license": "GPL-2.0-or-later",
   "author": "Kairo Martins",
   "type": "module",
   "scripts": {
@@ -42,7 +42,8 @@
       "dist/**/*",
       "electron/**/*",
       "build/icon.png",
-      "package.json"
+      "package.json",
+      "LICENSE"
     ],
     "win": {
       "target": [
@@ -62,7 +63,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Website Builder Suite",
-      "artifactName": "WebsiteBuilderSuite-Setup-${version}.${ext}"
+      "artifactName": "WebsiteBuilderSuite-Setup-${version}.${ext}",
+      "license": "LICENSE"
     },
     "mac": {
       "target": [

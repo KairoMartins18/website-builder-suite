@@ -2,6 +2,7 @@ import type { ElementStyle, Link, Section, SectionBackground } from '../types';
 import { makeElement, type ElementSeed } from '../elements/registry';
 import { newSection } from '../lib/siteOps';
 import { placeholderImage } from '../lib/images';
+import { blankFlowSection } from '../lib/flow';
 
 // Pequena DSL para montar seções com elementos posicionados.
 type Seed = ElementSeed & { x: number; y: number };
@@ -69,7 +70,8 @@ export interface SectionPreset {
 const LOREM = 'Conte aos visitantes o que torna seu trabalho especial. Use este espaço para apresentar sua história, seus valores e o que você oferece.';
 
 export const SECTION_PRESETS: SectionPreset[] = [
-  { id: 'blank', name: 'Em branco', description: 'Seção vazia para montar do zero', build: () => section('Nova seção', 500, []) },
+  { id: 'blank', name: 'Em branco (containers)', description: 'Seção responsiva vazia: adicione estruturas e widgets', build: () => blankFlowSection('Nova seção') },
+  { id: 'blank-free', name: 'Em branco (modo livre)', description: 'Posicione elementos livremente, como no Wix', build: () => section('Nova seção', 500, []) },
   {
     id: 'hero-center',
     name: 'Destaque central',

@@ -5,6 +5,11 @@ import { BASE_CSS } from './render/baseCss';
 import './styles.css';
 import { native } from './lib/storage';
 import { saveNow } from './editor/save';
+import { applyUiTheme, getUiTheme } from './lib/uiTheme';
+import { ensureFonts } from './lib/fontLoader';
+
+applyUiTheme(getUiTheme());
+ensureFonts(['Inter']);
 
 // CSS dos sites renderizados (o mesmo usado no HTML exportado).
 const style = document.createElement('style');

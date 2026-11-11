@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useEditor } from '../store/editor';
 import { navigate } from '../lib/router';
 import { Icon } from '../components/Icon';
+import { DeviceSwitch } from '../components/DeviceSwitch';
+import { UiThemeButton } from '../components/UiThemeButton';
 import { saveNow } from './save';
 import { updateSite } from './actions';
-import { exportSite } from '../lib/exportActions';
+import { downloadWordPressPlugin, exportSite, exportWordPressTheme } from '../lib/exportActions';
 import { alertDialog } from '../components/Dialogs';
 
 const SAVE_LABEL = { saved: 'Salvo', pending: 'Alterações não salvas', saving: 'Salvando…', error: 'Erro ao salvar' };
@@ -19,12 +21,19 @@ export function TopBar() {
   const canRedo = useEditor((s) => s.future.length > 0);
   const saveState = useEditor((s) => s.saveState);
   const [exporting, setExporting] = useState(false);
+  const previewScheme = useEditor((s) => s.previewScheme);
+  const hasDark = !!site.settings.darkMode && site.settings.darkMode !== 'off';
 
-  const exportZip = async () => {
+  const [exportMenu, setExportMenu] = useState(false);
+  const runExport = async (kind: 'html' | 'wp' | 'plugin') => {
+    setExportMenu(false);
     setExporting(true);
     try {
       await saveNow();
-      await exportSite(useEditor.getState().site!);
+      const current = useEditor.getState().site!;
+      if (kind === 'html') await exportSite(current);
+      else if (kind === 'wp') await exportWordPressTheme(current);
+      else await downloadWordPressPlugin();
     } catch (err) {
       console.error(err);
       void alertDialog('Não foi possível exportar o site', String(err));
@@ -61,17 +70,20 @@ export function TopBar() {
             ))}
           </select>
         </label>
-        <div className="seg seg-dark">
-          <button className={device === 'desktop' ? 'is-active' : ''} onClick={() => setDevice('desktop')} title="Computador">
-            <Icon name="desktop" size={17} />
+        <DeviceSwitch value={device} onChange={setDevice} />
+        {hasDark && (
+          <button
+            className="icon-btn"
+            title={previewScheme === 'dark' ? 'Editar no modo claro' : 'Ver o site no modo escuro'}
+            onClick={() => useEditor.getState().setPreviewScheme(previewScheme === 'dark' ? 'light' : 'dark')}
+          >
+            <Icon name={previewScheme === 'dark' ? 'sun' : 'moon'} />
           </button>
-          <button className={device === 'mobile' ? 'is-active' : ''} onClick={() => setDevice('mobile')} title="Celular">
-            <Icon name="mobile" size={17} />
-          </button>
-        </div>
+        )}
       </div>
 
       <div className="ed-topbar-right">
+        <UiThemeButton />
         <button className="icon-btn" disabled={!canUndo} onClick={() => useEditor.getState().undo()} title="Desfazer (Ctrl+Z)">
           <Icon name="undo" />
         </button>
@@ -87,9 +99,37 @@ export function TopBar() {
         >
           <Icon name="play" size={16} /> Visualizar
         </button>
-        <button className="btn btn-primary" disabled={exporting} onClick={exportZip} title="Baixar o site como arquivos HTML (.zip)">
-          <Icon name="download" size={16} /> {exporting ? 'Exportando…' : 'Exportar'}
-        </button>
+        <div className="menu-wrap">
+          <button className="btn btn-primary" disabled={exporting} onClick={() => setExportMenu(!exportMenu)} aria-haspopup="menu" aria-expanded={exportMenu}>
+            <Icon name="download" size={16} /> {exporting ? 'Exportando…' : 'Exportar'}
+          </button>
+          {exportMenu && (
+            <div className="menu menu-export" role="menu" onMouseLeave={() => setExportMenu(false)}>
+              <button role="menuitem" onClick={() => runExport('wp')}>
+                <Icon name="wordpress" size={16} />
+                <span>
+                  <strong>Tema WordPress</strong>
+                  <em>Arquivo .zip para Aparência → Temas</em>
+                </span>
+              </button>
+              <button role="menuitem" onClick={() => runExport('plugin')}>
+                <Icon name="plugin" size={16} />
+                <span>
+                  <strong>Plugin Website Builder Suite</strong>
+                  <em>Formulários e seções livres no WordPress</em>
+                </span>
+              </button>
+              <hr />
+              <button role="menuitem" onClick={() => runExport('html')}>
+                <Icon name="download" size={16} />
+                <span>
+                  <strong>Site estático (HTML)</strong>
+                  <em>Para qualquer hospedagem, sem WordPress</em>
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

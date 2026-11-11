@@ -12,6 +12,7 @@ import { TopBar } from './TopBar';
 import { saveNow, startAutosave } from './save';
 import { copyElement, deleteElement, duplicateElement, pasteElement } from './actions';
 import { nudge } from './gestures';
+import { copyNode, deleteNode, duplicateNode, moveNodeSibling } from './flowActions';
 import { confirmDeleteSection } from './confirmations';
 
 function isTyping(target: EventTarget | null) {
@@ -40,25 +41,39 @@ function onKeyDown(e: KeyboardEvent) {
   } else if (mod && key === 'd' && sel?.kind === 'element') {
     e.preventDefault();
     duplicateElement(sel.id);
+  } else if (mod && key === 'd' && sel?.kind === 'node') {
+    e.preventDefault();
+    duplicateNode(sel.id);
   } else if (mod && key === 'c' && sel?.kind === 'element') {
     copyElement(sel.id);
+  } else if (mod && key === 'c' && sel?.kind === 'node') {
+    copyNode(sel.id);
   } else if (mod && key === 'x' && sel?.kind === 'element') {
     copyElement(sel.id);
     deleteElement(sel.id);
+  } else if (mod && key === 'x' && sel?.kind === 'node') {
+    copyNode(sel.id);
+    deleteNode(sel.id);
   } else if (mod && key === 'v') {
     pasteElement();
   } else if (key === 'delete' || key === 'backspace') {
     if (sel?.kind === 'element') {
       e.preventDefault();
       deleteElement(sel.id);
+    } else if (sel?.kind === 'node') {
+      e.preventDefault();
+      deleteNode(sel.id);
     } else if (sel?.kind === 'section') {
       const s = findSection(st.site, sel.id);
       if (s?.kind === 'body') void confirmDeleteSection(s);
     }
   } else if (key === 'escape') {
     st.select(null);
-  } else if (key === 'enter' && sel?.kind === 'element') {
+  } else if (key === 'enter' && (sel?.kind === 'element' || sel?.kind === 'node')) {
     st.setEditingText(sel.id);
+  } else if (sel?.kind === 'node' && (key === 'arrowup' || key === 'arrowleft' || key === 'arrowdown' || key === 'arrowright')) {
+    e.preventDefault();
+    moveNodeSibling(sel.id, key === 'arrowup' || key === 'arrowleft' ? -1 : 1);
   } else if (sel?.kind === 'element' && key.startsWith('arrow')) {
     e.preventDefault();
     const step = e.shiftKey ? 10 : 1;

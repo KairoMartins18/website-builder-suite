@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import type { DeviceMode, Site, SiteElement } from '../types';
+import type { DeviceMode, FlowNode, Site, SiteElement } from '../types';
 import { findElement, findSection } from '../lib/siteOps';
+import { findNode } from '../lib/flow';
 
-export type Selection = { kind: 'element'; id: string } | { kind: 'section'; id: string } | null;
+/** element = elemento de seção livre; node = container/widget de seção em fluxo. */
+export type Selection = { kind: 'element'; id: string } | { kind: 'node'; id: string } | { kind: 'section'; id: string } | null;
+export type Clipboard = { kind: 'element'; element: SiteElement } | { kind: 'node'; node: FlowNode };
 export type LeftPanel = 'add' | 'sections' | 'pages' | 'layers' | 'theme';
 export type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
@@ -32,7 +35,9 @@ interface EditorState {
   guides: Guides | null;
   leftPanel: LeftPanel | null;
   saveState: SaveState;
-  clipboard: SiteElement | null;
+  clipboard: Clipboard | null;
+  /** Como o site aparece no canvas (para sites com modo escuro). */
+  previewScheme: 'light' | 'dark';
 
   load(site: Site): void;
   close(): void;
@@ -48,7 +53,8 @@ interface EditorState {
   setGuides(g: Guides | null): void;
   setLeftPanel(p: LeftPanel | null): void;
   setSaveState(s: SaveState): void;
-  setClipboard(el: SiteElement | null): void;
+  setClipboard(c: Clipboard | null): void;
+  setPreviewScheme(s: 'light' | 'dark'): void;
 }
 
 const HISTORY_LIMIT = 100;
@@ -60,6 +66,7 @@ let gestureBase: Site | null = null;
 function validSelection(site: Site, sel: Selection): Selection {
   if (!sel) return null;
   if (sel.kind === 'element') return findElement(site, sel.id) ? sel : null;
+  if (sel.kind === 'node') return findNode(site, sel.id) ? sel : null;
   return findSection(site, sel.id) ? sel : null;
 }
 
@@ -79,6 +86,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   leftPanel: null,
   saveState: 'saved',
   clipboard: null,
+  previewScheme: 'light',
 
   load: (site) =>
     set({ site, past: [], future: [], pageId: site.homePageId, selection: null, editingTextId: null, guides: null, saveState: 'saved', device: 'desktop' }),
@@ -147,11 +155,12 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   setPage: (pageId) => set({ pageId, selection: null, editingTextId: null }),
-  select: (selection) => set((s) => ({ selection, editingTextId: selection?.kind === 'element' && selection.id === s.editingTextId ? s.editingTextId : null })),
+  select: (selection) => set((s) => ({ selection, editingTextId: selection && selection.kind !== 'section' && selection.id === s.editingTextId ? s.editingTextId : null })),
   setDevice: (device) => set({ device, editingTextId: null }),
   setEditingText: (editingTextId) => set({ editingTextId }),
   setGuides: (guides) => set({ guides }),
   setLeftPanel: (leftPanel) => set({ leftPanel }),
   setSaveState: (saveState) => set({ saveState }),
   setClipboard: (clipboard) => set({ clipboard }),
+  setPreviewScheme: (previewScheme) => set({ previewScheme }),
 }));

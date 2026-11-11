@@ -1,6 +1,7 @@
 import { DESKTOP_WIDTH, MOBILE_WIDTH, type DeviceMode, type Geometry, type Page, type Section, type Site, type SiteElement } from '../types';
 
-export const contentWidth = (device: DeviceMode) => (device === 'desktop' ? DESKTOP_WIDTH : MOBILE_WIDTH);
+/** Largura da área das seções livres (no tablet usa-se o layout de computador reduzido). */
+export const contentWidth = (device: DeviceMode) => (device === 'mobile' ? MOBILE_WIDTH : DESKTOP_WIDTH);
 
 /** Cabeçalho + seções da página + rodapé, na ordem de exibição. */
 export function pageSections(site: Site, page: Page): Section[] {
@@ -43,11 +44,34 @@ function rowsOf(els: SiteElement[]): SiteElement[][] {
   return rows.map((r) => r.sort((a, b) => a.x - b.x));
 }
 
+/**
+ * Altura estimada de um texto numa largura menor, pelo número de caracteres,
+ * tamanho e peso da fonte (+15% de folga para quebras de palavra).
+ */
+function textHeight(el: SiteElement, width: number): number | null {
+  const html: string | undefined = el.props.html;
+  if (el.type !== 'heading' && el.type !== 'text') return null;
+  if (!html) return null;
+  const fs = el.style.fontSize ?? 16;
+  const lh = el.style.lineHeight ?? 1.4;
+  const charW = fs * ((el.style.fontWeight ?? 400) >= 600 ? 0.6 : 0.52) * (el.style.textTransform === 'uppercase' ? 1.15 : 1);
+  const perLine = Math.max(1, Math.floor((width - (el.style.padding ?? 0) * 2) / charW));
+  const paragraphs = html
+    .replace(/<br\s*\/?>|<\/(div|p)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .split('\n');
+  const lines = paragraphs.reduce((n, p) => n + Math.max(1, Math.ceil((p.trim().length * 1.15) / perLine)), 0);
+  return Math.ceil(lines * fs * lh + (el.style.padding ?? 0) * 2);
+}
+
 /** Tamanho de um elemento ao caber em `maxW` pixels de largura. */
 function fit(el: SiteElement, maxW: number): { w: number; h: number } {
   if (el.type === 'menu') return { w: BURGER, h: BURGER };
   if (el.w <= maxW) return { w: el.w, h: el.h };
   const ratio = el.w / maxW;
+  const estimated = textHeight(el, maxW);
+  if (estimated !== null) return { w: maxW, h: Math.max(estimated, Math.min(el.h, 40)) };
   if (TEXTUAL.has(el.type)) return { w: maxW, h: Math.round(el.h * Math.min(ratio, 4)) };
   if (el.type === 'button' || el.type === 'line') return { w: maxW, h: el.h };
   if (el.type === 'form') return { w: maxW, h: el.h };
@@ -152,10 +176,10 @@ export function mobileLayout(section: Section): MobileLayout {
 }
 
 export function elementGeom(section: Section, el: SiteElement, device: DeviceMode): Geometry {
-  if (device === 'desktop') return el;
+  if (device !== 'mobile') return el;
   return mobileLayout(section).geoms[el.id] ?? el;
 }
 
 export function sectionHeight(section: Section, device: DeviceMode): number {
-  return device === 'desktop' ? section.height : mobileLayout(section).height;
+  return device !== 'mobile' ? section.height : mobileLayout(section).height;
 }

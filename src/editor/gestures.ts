@@ -61,6 +61,7 @@ function track(onMove: (ev: PointerEvent) => void, onUp: (ev: PointerEvent) => v
 
 export function startMove(e: React.PointerEvent, elementId: string) {
   const { site, device } = st();
+  if (device === 'tablet') return;
   const found = site && findElement(site, elementId);
   if (!found) return;
   const sectionId = found.section.id;
@@ -128,6 +129,7 @@ function dropIntoSection(elementId: string, fromSectionId: string) {
 export function startResize(e: React.PointerEvent, elementId: string, dir: HandleDir) {
   e.stopPropagation();
   const { site, device } = st();
+  if (device === 'tablet') return;
   const found = site && findElement(site, elementId);
   if (!found) return;
   const sectionId = found.section.id;
@@ -200,7 +202,7 @@ export function startSectionResize(e: React.PointerEvent, sectionId: string) {
   e.preventDefault();
   const { site, device } = st();
   const sec = site && findSection(site, sectionId);
-  if (!sec) return;
+  if (!sec || device === 'tablet') return;
   const startH = sectionHeight(sec, device);
   const bottoms = sec.elements.filter((el) => !(device === 'mobile' && el.mobileHidden)).map((el) => {
     const g = elementGeom(sec, el, device);

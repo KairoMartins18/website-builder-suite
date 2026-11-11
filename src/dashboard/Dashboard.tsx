@@ -6,8 +6,10 @@ import { reidentifySite } from '../lib/siteOps';
 import { TEMPLATES, type SiteTemplate } from '../templates';
 import { SiteThumbnail } from '../components/SiteThumbnail';
 import { Icon } from '../components/Icon';
+import { UiThemeButton } from '../components/UiThemeButton';
+import { downloadWordPressPlugin } from '../lib/exportActions';
 import { alertDialog, confirmDialog, promptDialog } from '../components/Dialogs';
-import { downloadBackup, exportSite } from '../lib/exportActions';
+import { downloadBackup, exportSite, exportWordPressTheme } from '../lib/exportActions';
 
 function timeAgo(ts: number): string {
   const s = Math.round((Date.now() - ts) / 1000);
@@ -54,6 +56,7 @@ export function Dashboard() {
           <span className="brand-mark">W</span> Website Builder Suite
         </div>
         <div className="dash-top-actions">
+          <UiThemeButton />
           <button className="btn btn-ghost" onClick={() => importRef.current?.click()}>
             Importar backup
           </button>
@@ -82,6 +85,16 @@ export function Dashboard() {
           </div>
           {!!sites?.length && <input className="input dash-search" placeholder="Buscar sites…" value={query} onChange={(e) => setQuery(e.target.value)} />}
         </div>
+
+        <section className="dash-hero">
+          <div>
+            <h2>Sites bonitos, acessíveis e prontos para o WordPress</h2>
+            <p>Monte visualmente, exporte como tema WordPress ou HTML. Gratuito e open source.</p>
+          </div>
+          <button className="btn" onClick={() => void downloadWordPressPlugin()}>
+            <Icon name="plugin" size={16} /> Baixar plugin WordPress
+          </button>
+        </section>
 
         {sites && sites.length === 0 && (
           <div className="dash-empty">
@@ -193,6 +206,9 @@ function SiteCard({ meta, onChanged }: { meta: SiteMeta; onChanged: () => void }
                     await exportSite(site);
                   })}>
                 <Icon name="download" size={15} /> {window.wbNative ? 'Exportar site (HTML)' : 'Exportar HTML (.zip)'}
+              </button>
+              <button onClick={() => act(() => exportWordPressTheme(site))}>
+                <Icon name="wordpress" size={15} /> Exportar tema WordPress
               </button>
               <button
                 onClick={() =>

@@ -1,0 +1,20 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wbs/free-section",
+	"title": "Seção livre",
+	"category": "website-builder-suite",
+	"icon": "layout",
+	"description": "Seção com posicionamento livre criada no Website Builder Suite.",
+	"keywords": [ "website builder", "seção", "livre" ],
+	"textdomain": "website-builder-suite",
+	"attributes": {
+		"html": { "type": "string", "default": "" },
+		"css": { "type": "string", "default": "" },
+		"sectionId": { "type": "string", "default": "" }
+	},
+	"supports": { "html": false, "customClassName": false },
+	"editorScript": "wbs-editor",
+	"style": "wbs-blocks",
+	"render": "file:./render.php"
+}

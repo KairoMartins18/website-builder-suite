@@ -1,5 +1,8 @@
 import type { AnchorHTMLAttributes, CSSProperties, ReactNode } from 'react';
-import type { Link, Site, SiteElement } from '../types';
+import type { Link, Site, SiteElement, WidgetNode } from '../types';
+
+/** O suficiente para desenhar o conteúdo: elemento livre ou widget de container. */
+export type ElementLike = Pick<SiteElement, 'id' | 'type' | 'props' | 'style' | 'link'>;
 import { elementCss, resolveColor } from '../lib/theme';
 import { ELEMENTS } from '../elements/registry';
 
@@ -67,7 +70,7 @@ const SOCIAL_ICONS: Record<string, ReactNode> = {
   ),
 };
 
-export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv }) {
+export function ElementContent({ el, env }: { el: ElementLike; env: RenderEnv }) {
   const p = el.props;
   const placeholder = (text: string) => <div className="wb-placeholder">{text}</div>;
   const noFrames = env.mode === 'thumb';
@@ -109,7 +112,7 @@ export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv })
       const cols = Math.max(1, Number(p.columns) || 3);
       const style: CSSProperties = { gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: p.gap ?? 8 };
       return (
-        <div className="wb-gallery" style={style}>
+        <div className="wb-gallery" style={style} data-lightbox={p.lightbox ? '' : undefined}>
           {images.map((img, i) => (
             <img key={i} src={img.src} alt={img.alt ?? ''} style={{ borderRadius: p.radius ?? 0 }} draggable={false} loading={env.mode === 'export' ? 'lazy' : undefined} />
           ))}
@@ -127,15 +130,15 @@ export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv })
         '--wb-menu-active': resolveColor(p.activeColor) ?? 'currentColor',
       } as CSSProperties;
       return (
-        <nav className="wb-menu" style={{ '--wb-menu-active': style['--wb-menu-active' as keyof CSSProperties] } as CSSProperties}>
-          <button className="wb-burger" type="button" aria-label="Abrir menu" tabIndex={env.mode === 'edit' ? -1 : undefined}>
+        <nav className="wb-menu" aria-label="Menu principal" style={{ '--wb-menu-active': style['--wb-menu-active' as keyof CSSProperties] } as CSSProperties}>
+          <button className="wb-burger" type="button" aria-label="Abrir menu" aria-expanded="false" tabIndex={env.mode === 'edit' ? -1 : undefined}>
             <span />
             <span />
             <span />
           </button>
           <div className="wb-menu-links" style={style}>
             {pages.map((pg) => (
-              <a key={pg.id} href={env.hrefForPage(pg.id)} className={pg.id === env.pageId ? 'wb-active' : undefined}>
+              <a key={pg.id} href={env.hrefForPage(pg.id)} className={pg.id === env.pageId ? 'wb-active' : undefined} aria-current={pg.id === env.pageId ? 'page' : undefined}>
                 {pg.name}
               </a>
             ))}
@@ -152,9 +155,9 @@ export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv })
               {f.label}
               {f.required ? ' *' : ''}
               {f.type === 'textarea' ? (
-                <textarea name={f.label} required={f.required} tabIndex={env.mode === 'edit' ? -1 : undefined} />
+                <textarea name={f.label} required={f.required} aria-required={f.required || undefined} tabIndex={env.mode === 'edit' ? -1 : undefined} />
               ) : (
-                <input name={f.label} type={f.type} required={f.required} tabIndex={env.mode === 'edit' ? -1 : undefined} />
+                <input name={f.label} type={f.type} required={f.required} aria-required={f.required || undefined} autoComplete={f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : /nome/i.test(f.label) ? 'name' : undefined} tabIndex={env.mode === 'edit' ? -1 : undefined} />
               )}
             </label>
           ))}
@@ -173,6 +176,79 @@ export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv })
     case 'embed':
       if (noFrames) return placeholder('</> HTML');
       return <iframe className="wb-frame" srcDoc={p.html ?? ''} title="Conteúdo incorporado" sandbox="allow-scripts allow-forms allow-popups" />;
+    case 'comments': {
+      // Sem servidor não há comentários: no HTML estático o bloco é omitido.
+      if (env.mode === 'export') return null;
+      const sample = [
+        ['Maria Souza', 'há 2 dias', 'Conteúdo muito útil, obrigada por compartilhar!'],
+        ['João Lima', 'há 5 dias', 'Gostei bastante. Vocês atendem aos sábados?'],
+      ];
+      return (
+        <div className="wb-comments">
+          <h3 className="wb-comments-title">{p.title || 'Comentários'}</h3>
+          <ol className="wb-comment-list">
+            {sample.map(([name, when, body]) => (
+              <li key={name}>
+                <span className="wb-avatar" aria-hidden>
+                  {name[0]}
+                </span>
+                <div>
+                  <strong>{name}</strong> <span className="wb-muted">{when}</span>
+                  <p>{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {p.showForm && (
+            <form className="wb-form wb-comment-form" onSubmit={(e) => e.preventDefault()}>
+              <label>
+                Deixe um comentário
+                <textarea tabIndex={env.mode === 'edit' ? -1 : undefined} />
+              </label>
+              <button type="submit" style={{ background: 'var(--wb-primary)' }} tabIndex={env.mode === 'edit' ? -1 : undefined}>
+                Publicar comentário
+              </button>
+            </form>
+          )}
+          <p className="wb-wp-note">Prévia — os comentários reais aparecem no WordPress.</p>
+        </div>
+      );
+    }
+    case 'login': {
+      if (env.mode === 'export') return null;
+      if (!p.asForm) return <a className="wb-login-link">Entrar</a>;
+      return (
+        <form className="wb-form wb-login" onSubmit={(e) => e.preventDefault()}>
+          <label>
+            Usuário ou e-mail
+            <input type="text" autoComplete="username" tabIndex={env.mode === 'edit' ? -1 : undefined} />
+          </label>
+          <label>
+            Senha
+            <input type="password" autoComplete="current-password" tabIndex={env.mode === 'edit' ? -1 : undefined} />
+          </label>
+          <label className="wb-check">
+            <input type="checkbox" tabIndex={env.mode === 'edit' ? -1 : undefined} /> Lembrar de mim
+          </label>
+          <button type="submit" style={{ background: 'var(--wb-primary)' }} tabIndex={env.mode === 'edit' ? -1 : undefined}>
+            Entrar
+          </button>
+          <p className="wb-wp-note">Prévia — o login funciona no WordPress.</p>
+        </form>
+      );
+    }
+    case 'themeToggle':
+      return (
+        <button className="wb-theme-toggle" type="button" aria-label="Alternar modo escuro" tabIndex={env.mode === 'edit' ? -1 : undefined}>
+          <svg className="wb-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden>
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+          <svg className="wb-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" aria-hidden>
+            <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />
+          </svg>
+        </button>
+      );
     case 'social': {
       const size = p.size ?? 28;
       const align = el.style.textAlign;
@@ -193,6 +269,20 @@ export function ElementContent({ el, env }: { el: SiteElement; env: RenderEnv })
       );
     }
   }
+}
+
+/** Widget de container: estilo e tamanho vêm do CSS gerado (permite ajustes por breakpoint). */
+export function RenderedWidget({ node, env }: { node: WidgetNode; env: RenderEnv }) {
+  const className = `wb-el wb-t-${node.type} n-${node.id}`;
+  const link = ELEMENTS[node.type].linkable ? linkProps(node.link, env) : null;
+  const content = <ElementContent el={node} env={env} />;
+  return link ? (
+    <a className={className} {...link}>
+      {content}
+    </a>
+  ) : (
+    <div className={className}>{content}</div>
+  );
 }
 
 /** Elemento completo como aparece no site publicado (posição vem do CSS de layout). */

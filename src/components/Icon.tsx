@@ -27,6 +27,32 @@ const PATHS: Record<string, ReactNode> = {
       <path d="M11 18.5h2" />
     </>
   ),
+  tablet: (
+    <>
+      <rect x="4.5" y="2.5" width="15" height="19" rx="2" />
+      <path d="M11 18.5h2" />
+    </>
+  ),
+  contrast: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />,
+  wordpress: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M4.5 8.5l4.2 11M8 8.5h4M10 8.5l3.6 10 3.2-8.8c.6-1.6.2-2.7-.4-3.4M14.8 8.5h1" />
+    </>
+  ),
+  plugin: <path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4" />,
   eye: (
     <>
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
